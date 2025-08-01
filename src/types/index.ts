@@ -33,7 +33,7 @@ export enum RoleType {
   TENANT = 'tenant',
   ACCOUNTANT = 'accountant',
   SECURITY = 'security',
-  METER_READER = 'meter_reader'
+  METER_READER = 'meter_reader',
 }
 
 export interface UserRole {
@@ -115,7 +115,7 @@ export enum UnitStatus {
   OCCUPIED = 'occupied',
   VACANT = 'vacant',
   UNDER_MAINTENANCE = 'under_maintenance',
-  RESERVED = 'reserved'
+  RESERVED = 'reserved',
 }
 
 export interface Unit {
@@ -191,55 +191,55 @@ export interface Bill {
   billNumber: string;
   billingDate: string;
   dueDate: string;
-  
+
   // مصرف فردی
   unitWaterConsumption: number;
   unitElectricityConsumption: number;
-  
+
   // سهم مشترکات
   unitShareWater: number;
   unitShareElectricity: number;
   excessWaterShare: number;
   excessElectricityShare: number;
-  
+
   // مصرف نهایی
   finalWaterConsumption: number;
   finalElectricityConsumption: number;
-  
+
   // هزینه‌های اصلی
   waterCost: number;
   electricityCost: number;
   waterSubscription: number;
   electricitySubscription: number;
   sewageCost: number;
-  
+
   // هزینه‌های مشترک
   staffSalaryShare: number;
   maintenanceShare: number;
   securityShare: number;
   gardeningShare: number;
   otherCommonShare: number;
-  
+
   // مجاميع
   totalAmount: number;
   previousBalance: number;
   finalAmount: number;
   status: BillStatus;
-  
+
   // اطلاعات تکمیلی
   unitAreaSharePercentage: number;
   totalComplexWater: number;
   totalComplexElectricity: number;
   commonWaterConsumption: number;
   commonElectricityConsumption: number;
-  
+
   createdAt: string;
 }
 
 export enum BillStatus {
   PENDING = 'pending',
   PAID = 'paid',
-  OVERDUE = 'overdue'
+  OVERDUE = 'overdue',
 }
 
 export interface MeterReading {
@@ -407,6 +407,55 @@ export interface ExcelImportResponse {
     tempPassword: string;
   }>;
   importSummary?: any;
+}
+
+export interface TemplateInfo {
+  templates: Array<{
+    id: string; // مثل "users", "units", "initial-billing"
+    name: string; // مثل "users-template"
+    title: string; // عنوان قالب فارسی
+    description: string; // توضیح کوتاه در مورد قالب
+    downloadUrl: string; // آدرس دانلود قالب
+    fileSize?: string; // اندازه تقریبی قالب، مثل "~25KB"
+    recordsCount?: number; // تعداد رکورد نمونه (اختیاری)
+    requiredColumns?: number; // تعداد ستون‌های الزامی (اختیاری)
+    totalColumns?: number; // تعداد کل ستون‌ها (اختیاری)
+    sheetsCount?: number; // تعداد شیت‌ها (اختیاری) برای قالب‌هایی که چند شیتی هستند
+    description_detailed?: string; // توضیح دقیق‌تر (اختیاری)
+  }>;
+  allTemplatesUrl: string; // آدرس دانلود همه قالب‌ها به صورت زیپ
+  lastUpdated: string; // زمان آخرین بروزرسانی به صورت ISO string
+  version: string; // نسخه قالب‌ها مثلا "1.0.0"
+}
+
+export interface BillingTemplateInfo {
+  templateStructure: {
+    overview: {
+      title: string;
+      description: string;
+      totalSheets: number;
+      estimatedTime: string;
+    };
+    sheets: Array<{
+      name: string; // نام شیت
+      description: string;
+      required: boolean;
+      columns: Array<{
+        name: string; // نام ستون
+        description: string;
+        example: string | number | boolean;
+        required: boolean;
+        note?: string; // نکته اختیاری
+      }>;
+    }>;
+  };
+  instructions: {
+    preparation: string[];
+    filling: string[];
+    validation: string[];
+  };
+  downloadUrl: string;
+  supportContact?: string; // (اختیاری) مثلا متن راهنمای تماس پشتیبانی
 }
 
 // ========================
@@ -670,13 +719,7 @@ export type Optional<T, K extends keyof T> = Omit<T, K> & Partial<Pick<T, K>>;
 
 export type RequiredFields<T, K extends keyof T> = T & Required<Pick<T, K>>;
 
-export type ApiEndpoint = 
-  | 'auth'
-  | 'users' 
-  | 'units'
-  | 'user-units'
-  | 'billing'
-  | 'excel';
+export type ApiEndpoint = 'auth' | 'users' | 'units' | 'user-units' | 'billing' | 'excel';
 
 export type HttpMethod = 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE';
 

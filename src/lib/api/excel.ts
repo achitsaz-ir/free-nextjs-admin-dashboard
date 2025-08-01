@@ -1,6 +1,6 @@
 // lib/api/excel.ts
 import { apiClient } from './client';
-import { ExcelImportResponse } from '@/types';
+import { ExcelImportResponse, TemplateInfo, BillingTemplateInfo } from '@/types'; // فرض بر این است که این تایپ‌ها در '@/types' تعریف شده‌اند
 
 export const excelApi = {
   async importUsers(formData: FormData): Promise<ExcelImportResponse> {
@@ -35,13 +35,44 @@ export const excelApi = {
     return response.data;
   },
 
-  async getTemplateInfo(): Promise<any> {
+  // متد برای دریافت اطلاعات تمام قالب‌ها (اطلاعات متا)
+  async getTemplateInfo(): Promise<TemplateInfo> {
     const response = await apiClient.get('/excel/download-templates');
     return response.data;
   },
 
-  async getBillingTemplateInfo(): Promise<any> {
+  // متد دریافت راهنمای قالب داده‌های بیلینگ اولیه
+  async getBillingTemplateInfo(): Promise<BillingTemplateInfo> {
     const response = await apiClient.get('/excel/billing-template-info');
+    return response.data;
+  },
+
+  // متدهای دانلود فایل قالب Excel (محتوای باینری)
+  async downloadUsersTemplate(): Promise<Blob> {
+    const response = await apiClient.get('/excel/templates/users', {
+      responseType: 'blob',
+    });
+    return response.data;
+  },
+
+  async downloadUnitsTemplate(): Promise<Blob> {
+    const response = await apiClient.get('/excel/templates/units', {
+      responseType: 'blob',
+    });
+    return response.data;
+  },
+
+  async downloadInitialBillingTemplate(): Promise<Blob> {
+    const response = await apiClient.get('/excel/templates/initial-billing', {
+      responseType: 'blob',
+    });
+    return response.data;
+  },
+
+  async downloadAllTemplatesZip(): Promise<Blob> {
+    const response = await apiClient.get('/excel/templates/all', {
+      responseType: 'blob',
+    });
     return response.data;
   },
 };

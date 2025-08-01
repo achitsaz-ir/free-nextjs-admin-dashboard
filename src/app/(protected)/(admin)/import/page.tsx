@@ -1,4 +1,3 @@
-// app/(dashboard)/admin/import/page.tsx
 'use client';
 
 import { useState } from 'react';
@@ -40,7 +39,10 @@ export default function ImportExportPage() {
   const [activeTab, setActiveTab] = useState<ImportType>('users');
   const [importHistory, setImportHistory] = useState<ImportResult[]>([]);
   const [dragActive, setDragActive] = useState<ImportType | null>(null);
-  const router = useRouter();
+
+  // اگر احراز هویت نیاز است، توکن را اینجا بگذارید (مثال):
+  // const authToken = useAuthToken(); // فرضاً قابلیت گرفتن توکن دارید
+  const authToken = ''; // اینجا مقدار توکن خود را قرار دهید یا از context بگیرید
 
   // Import mutation
   const importMutation = useMutation({
@@ -55,25 +57,27 @@ export default function ImportExportPage() {
           return await excelApi.importUnits(formData);
         case 'initial-billing':
           return await excelApi.importInitialBillingData(formData);
+        default:
+          throw new Error('نوع ایمپورت نامعتبر است');
       }
     },
     onSuccess: (result, variables) => {
       toast.success(result.message || 'فایل با موفقیت پردازش شد');
-
-      // Add to history
-      const newResult: ImportResult = {
-        type: variables.type,
-        result,
-        timestamp: new Date(),
-      };
-      setImportHistory((prev) => [newResult, ...prev.slice(0, 9)]); // Keep last 10
+      setImportHistory((prev) => [
+        {
+          type: variables.type,
+          result,
+          timestamp: new Date(),
+        },
+        ...prev.slice(0, 9),
+      ]);
     },
     onError: (error: any) => {
-      toast.error(error.response?.data?.message || 'خطا در پردازش فایل');
+      toast.error(error?.response?.data?.message || 'خطا در پردازش فایل');
     },
   });
 
-  // Get import info
+  // اطلاعات متادیتای هر نوع ایمپورت
   const getImportInfo = (type: ImportType) => {
     const info = {
       users: {
@@ -83,10 +87,10 @@ export default function ImportExportPage() {
         color: 'blue',
         acceptedFormats: '.xlsx, .xls',
         maxSize: '10MB',
-        requiredColumns: ['phone', 'nationalId', 'firstName', 'lastName', 'role', 'unitNumber'],
+        requiredColumns: ['phone', 'nationalId', 'firstName', 'lastName', 'roles'],
         sampleData: [
-          '09121234567 | 0012345678 | علی | احمدی | owner | 101',
-          '09121234568 | 0012345679 | فاطمه | محمدی | tenant | 102',
+          '09121234567 | 0012345678 | علی | احمدی | ["owner"]',
+          '09121234568 | 0012345679 | فاطمه | محمدی | ["tenant","accountant"]',
         ],
       },
       units: {
@@ -97,7 +101,7 @@ export default function ImportExportPage() {
         acceptedFormats: '.xlsx, .xls',
         maxSize: '10MB',
         requiredColumns: ['unitNumber', 'area', 'floorNumber', 'bedrooms', 'bathrooms', 'status'],
-        sampleData: ['101 | 85.5 | 1 | 2 | 1 | occupied', '102 | 92.0 | 1 | 2 | 2 | vacant'],
+        sampleData: ['101 | 85.5 | 1 | 2 | 1 | occupied', '102 | 92.0 | 1 | 3 | 2 | vacant'],
       },
       'initial-billing': {
         title: 'داده‌های اولیه بیلینگ',
@@ -110,13 +114,12 @@ export default function ImportExportPage() {
         sampleData: ['شیت 1: قرائت اولیه کنتورها', 'شیت 2: تنظیمات ماهانه و نرخ‌ها'],
       },
     };
-
     return info[type];
   };
 
+  // اعتبارسنجی فایل انتخاب شده و شروع ایمپورت
   const handleFileUpload = (file: File, type: ImportType) => {
-    // Validate file
-    if (!file.name.match(/\.(xlsx|xls)$/)) {
+    if (!file.name.match(/\.(xlsx|xls)$/i)) {
       toast.error('فقط فایل‌های Excel (.xlsx, .xls) مجاز هستند');
       return;
     }
@@ -129,16 +132,49 @@ export default function ImportExportPage() {
     importMutation.mutate({ file, type });
   };
 
+  // دانلود قالب بر اساس نوع با استفاده از متدهای excelApi و مدیریت دانلود دستی
   const downloadTemplate = async (type: ImportType) => {
     try {
-      const response = await excelApi.getTemplateInfo();
-      // This would typically trigger a download
+      let blob: Blob;
+
+      switch (type) {
+        case 'users':
+          blob = await excelApi.downloadUsersTemplate();
+          break;
+        case 'units':
+          blob = await excelApi.downloadUnitsTemplate();
+          break;
+        case 'initial-billing':
+          blob = await excelApi.downloadInitialBillingTemplate();
+          break;
+        default:
+          throw new Error('نوع قالب نامعتبر است');
+      }
+
+      // تعیین نام فایل مناسب
+      const filenameMap: Record<ImportType, string> = {
+        users: 'espadana-users-template.xlsx',
+        units: 'espadana-units-template.xlsx',
+        'initial-billing': 'espadana-initial-billing-template.xlsx',
+      };
+      const filename = filenameMap[type] || 'template.xlsx';
+
+      const downloadUrl = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = downloadUrl;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(downloadUrl);
+
       toast.success('قالب در حال دانلود است...');
     } catch (error) {
       toast.error('خطا در دانلود قالب');
     }
   };
 
+  // رنگ متن وضعیت بر اساس موفقیت یا خطا
   const getStatusColor = (successCount: number, errorCount: number) => {
     if (errorCount === 0) return 'text-green-600';
     if (successCount === 0) return 'text-red-600';
